@@ -22,4 +22,4 @@ jobs:
 
       - name: Run tracker script
         run: python tracker.py
-        
+
