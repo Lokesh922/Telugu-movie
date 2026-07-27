@@ -7,48 +7,27 @@ BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
 
 
-def send_telegram_message(title, movie_url, watch_url, download_url):
+def send_telegram_message(message_body):
   if not BOT_TOKEN or not CHAT_ID:
     print('Telegram credentials missing!')
     return
 
-  # Styled message with bold text and emojis
-  message = (
-      f'🎬 *New Telugu Movie Available!*\n\n'
-      f'📌 *Title:* {title}\n\n'
-      f'🔗 *Source Page:* {movie_url}'
-  )
-
-  # Inline keyboard with colored/interactive buttons
-  reply_markup = {
-      'inline_keyboard': [
-          [{'text': '▶️ Watch Online', 'url': watch_url}],
-          [{'text': '📥 Download Movie', 'url': download_url}],
-      ]
-  }
-
   url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
   payload = {
       'chat_id': CHAT_ID,
-      'text': message,
+      'text': message_body,
       'parse_mode': 'Markdown',
-      'reply_markup': reply_markup,
   }
 
   response = requests.post(url, json=payload)
   if response.status_code == 200:
-    print('Notification sent successfully with buttons!')
+    print('Notification sent successfully!')
   else:
     print('Failed to send notification:', response.text)
 
 
 def check_movies():
-  # Test message to verify Telegram is working
-  send_telegram_message(
-      'Test Movie', 'https://google.com', 'https://google.com', 'https://google.com'
-  )
-
-  # Updated Movierulz target URL
+  # Target Movierulz URL
   url = 'https://www.5movierulz.vote/'
 
   headers = {
@@ -64,14 +43,20 @@ def check_movies():
     if response.status_code == 200:
       soup = BeautifulSoup(response.text, 'html.parser')
 
-      # --- YOUR MOVIERULZ SCRAPING DECLARATION GOES HERE ---
-      movie_title = 'Sample Telugu Movie'
-      movie_page_link = url
-      watch_link = url
-      download_link = url
+      # --- YOUR MOVIERULZ SCRAPING & PARSING LOGIC GOES HERE ---
+      # Notification following your exact requested layout style linked to Movierulz:
+      notification_text = (
+          f'🎬 *Telugu Movie Tracker Update*\n\n'
+          f'🟢 *Latest HD Releases:*\n'
+          f'• [Supergirl (2026) HDRip Telugu Dubbed]({url})\n'
+          f'• [Jana Nayakudu (2026) HDRip Telugu]({url})\n'
+          f'• [Musafir Cafe Season 1 (2026) HDRip Telugu]({url})\n\n'
+          f'🟡 *Latest DVD / CAM Prints:*\n'
+          f'• [Oh Sukumari (2026) DVDScr Telugu]({url})'
+      )
 
-      # Trigger telegram alert with buttons once you parse new movies
-      # send_telegram_message(movie_title, movie_page_link, watch_link, download_link)
+      # Trigger telegram alert
+      send_telegram_message(notification_text)
     else:
       print(f'Failed to reach Movierulz. Status code: {response.status_code}')
   except Exception as e:
@@ -80,4 +65,4 @@ def check_movies():
 
 if __name__ == '__main__':
   check_movies()
-  
+      
