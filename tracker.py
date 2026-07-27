@@ -43,28 +43,41 @@ def send_telegram_message(title, movie_url, watch_url, download_url):
 
 
 def check_movies():
-  # Replace with your target movie website URL and parsing declaration
-  url = 'YOUR_TARGET_MOVIE_WEBSITE_URL'
+  # Test message to verify Telegram is working
+  send_telegram_message(
+      'Test Movie', 'https://google.com', 'https://google.com', 'https://google.com'
+  )
 
-  headers = {'User-Agent': 'Mozilla/5.0'}
-  response = requests.get(url, headers=headers)
+  # Updated Movierulz target URL
+  url = 'https://www.5movierulz.vote/'
 
-  if response.status_code == 200:
-    soup = BeautifulSoup(response.text, 'html.parser')
+  headers = {
+      'User-Agent': (
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,'
+          ' like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      )
+  }
 
-    # --- YOUR WEBSITE SCRAPING DECLARATION GOES HERE ---
-    # Example placeholders (replace these with your actual parsed variables):
-    movie_title = 'Sample Telugu Movie'
-    movie_page_link = url
-    watch_link = 'https://example.com/watch'
-    download_link = 'https://example.com/download'
+  try:
+    response = requests.get(url, headers=headers, timeout=10)
 
-    # Trigger telegram alert with buttons
-    send_telegram_message(movie_title, movie_page_link, watch_link, download_link)
-  else:
-    print('Failed to reach website.')
+    if response.status_code == 200:
+      soup = BeautifulSoup(response.text, 'html.parser')
+
+      # --- YOUR MOVIERULZ SCRAPING DECLARATION GOES HERE ---
+      movie_title = 'Sample Telugu Movie'
+      movie_page_link = url
+      watch_link = url
+      download_link = url
+
+      # Trigger telegram alert with buttons once you parse new movies
+      # send_telegram_message(movie_title, movie_page_link, watch_link, download_link)
+    else:
+      print(f'Failed to reach Movierulz. Status code: {response.status_code}')
+  except Exception as e:
+    print(f'An error occurred: {e}')
 
 
 if __name__ == '__main__':
   check_movies()
-    
+  
