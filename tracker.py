@@ -11,29 +11,51 @@ def get_categorized_movies():
         response = requests.get(URL, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        movies = []
+        hd_list = []
+        dvd_cam_list = []
+        
         for a in soup.find_all('a'):
             text = a.text.strip()
             if text and ("[Telugu]" in text or "[Telugu Dubbed]" in text):
-                if text not in movies:
-                    movies.append(text)
-        return movies
+                if "HDRip" in text or "BRRip" in text or "BluRay" in text:
+                    if text not in hd_list:
+                        hd_list.append(text)
+                else:
+                    if text not in dvd_cam_list:
+                        dvd_cam_list.append(text)
+                        
+        return hd_list, dvd_cam_list
     except Exception as e:
-        print(f"Error: {e}")
-        return []
+        print(f"Error fetching page: {e}")
+        return [], []
 
 def send_telegram_notification(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message}
+    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
     try:
         requests.post(url, json=payload)
     except Exception as e:
         print(f"Error: {e}")
 
 if __name__ == "__main__":
-    current_movies = get_categorized_movies()
-    if current_movies:
-        # Sends the top latest movie found on the site during this check
-        latest_movie = current_movies[0]
-        send_telegram_notification(f"🎬 Latest Telugu Check: {latest_movie}")
-      
+    hd_movies, other_movies = get_categorized_movies()
+    
+    if hd_movies or other_movies:
+        message = "🎬 *Telugu Movie Tracker Update*\n\n"
+        
+        message += "🟢 *Latest HD Releases:*\n"
+        if hd_movies:
+            message += "\n".join([f"• {m}" for m in hd_movies[:3]]) + "\n\n"
+        else:
+            message += "None found\n\n"
+            
+        message += "🟡 *Latest DVD / CAM Prints:*\n"
+        if other_movies:
+            message += "\n".join([f"• {m}" for m in other_movies[:3]])
+        else:
+            message += "None found"
+            
+        send_telegram_notification(message)
+    else:
+        print("No movies found or site blocked.")
+            
