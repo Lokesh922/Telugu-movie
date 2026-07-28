@@ -1,3 +1,4 @@
+import json
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -5,6 +6,27 @@ from bs4 import BeautifulSoup
 # Secure credentials loaded from GitHub Secrets
 BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
+
+# File to store previously seen movies so we don't spam notifications
+SEEN_FILE = 'seen_movies.json'
+
+
+def load_seen_movies():
+  if os.path.exists(SEEN_FILE):
+    try:
+      with open(SEEN_FILE, 'r') as f:
+        return json.load(f)
+    except Exception:
+      return []
+  return []
+
+
+def save_seen_movies(movies_list):
+  try:
+    with open(SEEN_FILE, 'w') as f:
+      json.dump(movies_list, f)
+  except Exception as e:
+    print(f'Failed to save seen movies: {e}')
 
 
 def send_telegram_message(message_body):
@@ -44,19 +66,49 @@ def check_movies():
       soup = BeautifulSoup(response.text, 'html.parser')
 
       # --- YOUR MOVIERULZ SCRAPING & PARSING LOGIC GOES HERE ---
-      # Notification following your exact requested layout style linked to Movierulz:
-      notification_text = (
-          f'🎬 *Telugu Movie Tracker Update*\n\n'
-          f'🟢 *Latest HD Releases:*\n'
-          f'• [Supergirl (2026) HDRip Telugu Dubbed]({url})\n'
-          f'• [Jana Nayakudu (2026) HDRip Telugu]({url})\n'
-          f'• [Musafir Cafe Season 1 (2026) HDRip Telugu]({url})\n\n'
-          f'🟡 *Latest DVD / CAM Prints:*\n'
-          f'• [Oh Sukumari (2026) DVDScr Telugu]({url})'
-      )
+      # For demonstration, let's pretend these are the movies currently found on the site:
+      current_hd_movies = [
+          'Supergirl (2026) HDRip Telugu Dubbed',
+          'Jana Nayakudu (2026) HDRip Telugu',
+          'Musafir Cafe Season 1 (2026) HDRip Telugu',
+      ]
+      current_dvd_movies = ['Oh Sukumari (2026) DVDScr Telugu']
 
-      # Trigger telegram alert
-      send_telegram_message(notification_text)
+      all_current_movies = current_hd_movies + current_dvd_movies
+
+      # Load previously seen movies from file
+      seen_movies = load_seen_movies()
+
+      # Find if there are any brand new movies that weren't in our saved list
+      new_movies = [
+          movie for movie in all_current_movies if movie not in seen_movies
+      ]
+
+      if new_movies:
+        print(f'Found {len(new_movies)} new movie(s)! Sending notification...')
+
+        # Format the notification layout for the new entries
+        hd_text = '\n'.join(
+            [f'• [{m}]({url})' for m in current_hd_movies if m in new_movies]
+        )
+        dvd_text = '\n'.join(
+            [f'• [{m}]({url})' for m in current_dvd_movies if m in new_movies]
+        )
+
+        notification_text = '🎬 *Telugu Movie Tracker Update*\n\n'
+        if hd_text:
+          notification_text += f'🟢 *Latest HD Releases:*\n{hd_text}\n\n'
+        if dvd_text:
+          notification_text += f'🟡 *Latest DVD / CAM Prints:*\n{dvd_text}'
+
+        # Send alert only because new items exist
+        send_telegram_message(notification_text)
+
+        # Update our saved list to current so we don't alert for them again next hour
+        save_seen_movies(all_current_movies)
+      else:
+        print('No new movies found. No notification sent.')
+
     else:
       print(f'Failed to reach Movierulz. Status code: {response.status_code}')
   except Exception as e:
@@ -65,4 +117,4 @@ def check_movies():
 
 if __name__ == '__main__':
   check_movies()
-      
+  
