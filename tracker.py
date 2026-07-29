@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
 
-# File to store previously seen movies so we don't spam notifications
+# File to store previously seen movies
 SEEN_FILE = 'seen_movies.json'
 
 
@@ -66,7 +66,7 @@ def check_movies():
       soup = BeautifulSoup(response.text, 'html.parser')
 
       # --- YOUR MOVIERULZ SCRAPING & PARSING LOGIC GOES HERE ---
-      # For demonstration, let's pretend these are the movies currently found on the site:
+      # (Replace these simulated lists with your actual BeautifulSoup selectors later)
       current_hd_movies = [
           'Supergirl (2026) HDRip Telugu Dubbed',
           'Jana Nayakudu (2026) HDRip Telugu',
@@ -76,24 +76,21 @@ def check_movies():
 
       all_current_movies = current_hd_movies + current_dvd_movies
 
-      # Load previously seen movies from file
+      # Load previously saved movies
       seen_movies = load_seen_movies()
 
-      # Find if there are any brand new movies that weren't in our saved list
-      new_movies = [
-          movie for movie in all_current_movies if movie not in seen_movies
-      ]
+      # Filter out only movies that are NOT in our history file
+      new_hd_movies = [m for m in current_hd_movies if m not in seen_movies]
+      new_dvd_movies = [m for m in current_dvd_movies if m not in seen_movies]
 
-      if new_movies:
-        print(f'Found {len(new_movies)} new movie(s)! Sending notification...')
+      # Check if any brand-new movies exist across either category
+      if new_hd_movies or new_dvd_movies:
+        print(
+            'New movies detected! Preparing notification for only new entries...'
+        )
 
-        # Format the notification layout for the new entries
-        hd_text = '\n'.join(
-            [f'• [{m}]({url})' for m in current_hd_movies if m in new_movies]
-        )
-        dvd_text = '\n'.join(
-            [f'• [{m}]({url})' for m in current_dvd_movies if m in new_movies]
-        )
+        hd_text = '\n'.join([f'• [{m}]({url})' for m in new_hd_movies])
+        dvd_text = '\n'.join([f'• [{m}]({url})' for m in new_dvd_movies])
 
         notification_text = '🎬 *Telugu Movie Tracker Update*\n\n'
         if hd_text:
@@ -101,13 +98,15 @@ def check_movies():
         if dvd_text:
           notification_text += f'🟡 *Latest DVD / CAM Prints:*\n{dvd_text}'
 
-        # Send alert only because new items exist
+        # Send notification strictly for the new items
         send_telegram_message(notification_text)
 
-        # Update our saved list to current so we don't alert for them again next hour
+        # Save all current movies to history so they are never flagged as new again
         save_seen_movies(all_current_movies)
       else:
-        print('No new movies found. No notification sent.')
+        print(
+            'No new movies added since the last check. No notification sent.'
+        )
 
     else:
       print(f'Failed to reach Movierulz. Status code: {response.status_code}')
